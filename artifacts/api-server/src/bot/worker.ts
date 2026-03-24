@@ -6,6 +6,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_KEY });
 
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 const PAGE_ID = process.env.PAGE_ID;
+const INSTAGRAM_ACCOUNT_ID_ENV = process.env.INSTAGRAM_ACCOUNT_ID;
 const POLL_INTERVAL_MS = 60_000;
 
 interface BotState {
@@ -147,9 +148,18 @@ export async function startBot(): Promise<void> {
 
   try {
     await loadRepliedIds();
-    const accountId = await getInstagramAccountId();
+
+    let accountId: string | null = null;
+
+    if (INSTAGRAM_ACCOUNT_ID_ENV) {
+      accountId = INSTAGRAM_ACCOUNT_ID_ENV;
+      logger.info({ accountId }, "Using INSTAGRAM_ACCOUNT_ID from environment");
+    } else {
+      accountId = await getInstagramAccountId();
+    }
+
     if (!accountId) {
-      botState.errorMessage = "لم يتم العثور على حساب Instagram مرتبط بهذه الصفحة";
+      botState.errorMessage = "لم يتم العثور على حساب Instagram. يرجى إضافة INSTAGRAM_ACCOUNT_ID في الإعدادات.";
       botState.running = false;
       return;
     }

@@ -64,6 +64,32 @@ paths:
                       $ref: "#/components/schemas/BotReply"
                 required:
                   - replies
+  /bot/dm-replies:
+    get:
+      operationId: getBotDmReplies
+      tags: [bot]
+      summary: Get recent DM replies
+      description: Returns a list of recent DM replies sent by the bot
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: List of DM replies
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  replies:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/BotDmReply"
+                required:
+                  - replies
   /bot/start:
     post:
       operationId: startBot
@@ -99,12 +125,44 @@ components:
           type: string
       required:
         - status
+    BotDmReply:
+      type: object
+      properties:
+        id:
+          type: integer
+        conversationId:
+          type: string
+        messageId:
+          type: string
+        messageText:
+          type: string
+        replyText:
+          type: string
+        senderUsername:
+          type: string
+          nullable: true
+        senderId:
+          type: string
+          nullable: true
+        repliedAt:
+          type: string
+      required:
+        - id
+        - conversationId
+        - messageId
+        - messageText
+        - replyText
+        - senderUsername
+        - senderId
+        - repliedAt
     BotStatus:
       type: object
       properties:
         running:
           type: boolean
         totalReplies:
+          type: integer
+        totalDmReplies:
           type: integer
         instagramAccountId:
           type: string
@@ -118,6 +176,7 @@ components:
       required:
         - running
         - totalReplies
+        - totalDmReplies
         - instagramAccountId
         - lastChecked
         - errorMessage

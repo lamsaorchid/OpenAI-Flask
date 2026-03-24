@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -13,11 +13,13 @@ import {
   CheckCircle2,
   XCircle,
   Loader2,
-  Sparkles
+  Sparkles,
+  Mail
 } from "lucide-react";
 import { 
   useGetBotStatus, 
-  useGetBotReplies, 
+  useGetBotReplies,
+  useGetBotDmReplies,
   useStartBot, 
   useStopBot 
 } from "@workspace/api-client-react";
@@ -26,22 +28,26 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState("comments");
 
-  // Polling Bot Status every 5 seconds
   const { data: status, isLoading: isLoadingStatus } = useGetBotStatus({
     query: { refetchInterval: 5000 }
   });
 
-  // Polling Recent Replies every 10 seconds
   const { data: repliesData, isLoading: isLoadingReplies } = useGetBotReplies(
     { limit: 20 },
     { query: { refetchInterval: 10000 } }
   );
 
-  // Mutations
+  const { data: dmRepliesData, isLoading: isLoadingDmReplies } = useGetBotDmReplies(
+    { limit: 20 },
+    { query: { refetchInterval: 10000 } }
+  );
+
   const startMutation = useStartBot({
     mutation: {
       onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/bot/status"] })
@@ -76,7 +82,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen pb-20 relative overflow-hidden">
-      {/* Background Image & Effects */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         <img 
           src={`${import.meta.env.BASE_URL}images/hero-bg.png`} 
@@ -139,7 +144,7 @@ export default function Dashboard() {
           animate="visible"
           className="grid grid-cols-1 md:grid-cols-12 gap-8"
         >
-          {/* Controls & Main Stats - Left Column (actually Right in RTL, occupying 4 columns) */}
+          {/* Left sidebar */}
           <div className="md:col-span-4 space-y-6">
             <motion.div variants={itemVariants}>
               <Card className="glass-card border-none shadow-2xl relative overflow-hidden">
@@ -160,7 +165,7 @@ export default function Dashboard() {
                           <>
                             <CheckCircle2 className="w-16 h-16 text-success mb-4" />
                             <h3 className="text-2xl font-bold text-foreground">جاري التشغيل</h3>
-                            <p className="text-sm text-muted-foreground mt-1">البوت يراقب التعليقات حالياً</p>
+                            <p className="text-sm text-muted-foreground mt-1">البوت يراقب التعليقات والرسائل</p>
                           </>
                         ) : (
                           <>
@@ -233,8 +238,9 @@ export default function Dashboard() {
             </motion.div>
           </div>
 
-          {/* Main Content - Right Column (actually Left in RTL, occupying 8 columns) */}
+          {/* Main content */}
           <div className="md:col-span-8 space-y-6">
+            {/* Stats */}
             <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Card className="bg-background border-l-4 border-l-primary shadow-md">
                 <CardContent className="p-6 flex items-center gap-4">
@@ -242,80 +248,157 @@ export default function Dashboard() {
                     <MessageCircle className="w-8 h-8 text-primary" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-1">إجمالي الردود المرسلة</p>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">ردود التعليقات</p>
                     <h4 className="text-4xl font-extrabold text-foreground">
                       {isLoadingStatus ? "-" : status?.totalReplies?.toLocaleString('ar-EG') || "0"}
                     </h4>
                   </div>
                 </CardContent>
               </Card>
-            </motion.div>
 
-            <motion.div variants={itemVariants}>
-              <Card className="shadow-lg border-border/50 bg-card overflow-hidden">
-                <CardHeader className="bg-muted/30 border-b border-border/50 px-6 py-5 flex flex-row items-center justify-between">
-                  <CardTitle className="text-xl">الردود الأخيرة</CardTitle>
-                  <Badge variant="secondary" className="px-3 py-1 text-sm font-bold bg-secondary/20 text-secondary-foreground">
-                    آخر {repliesData?.replies?.length || 0} ردود
-                  </Badge>
-                </CardHeader>
-                <CardContent className="p-0">
-                  {isLoadingReplies ? (
-                    <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-                      <Loader2 className="w-10 h-10 animate-spin text-primary/50 mb-4" />
-                      <p>جاري تحميل الردود...</p>
-                    </div>
-                  ) : repliesData?.replies && repliesData.replies.length > 0 ? (
-                    <div className="divide-y divide-border/50">
-                      {repliesData.replies.map((reply) => (
-                        <div key={reply.id} className="p-6 hover:bg-muted/20 transition-colors">
-                          <div className="flex items-start justify-between mb-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-gray-200 to-gray-300 dark:from-gray-800 dark:to-gray-700 flex items-center justify-center font-bold text-gray-500 dark:text-gray-400">
-                                {reply.username ? reply.username.charAt(0).toUpperCase() : '@'}
-                              </div>
-                              <div>
-                                <p className="font-bold text-sm">{reply.username || 'مستخدم مجهول'}</p>
-                                <p className="text-xs text-muted-foreground mt-0.5">
-                                  {formatDistanceToNow(parseISO(reply.repliedAt), { addSuffix: true, locale: ar })}
-                                </p>
-                              </div>
-                            </div>
-                            <a 
-                              href={`https://instagram.com/p/${reply.postId}`} 
-                              target="_blank" 
-                              rel="noreferrer"
-                              className="text-xs flex items-center gap-1 text-primary hover:underline bg-primary/5 px-2.5 py-1.5 rounded-md transition-colors"
-                            >
-                              عرض المنشور <Instagram className="w-3 h-3" />
-                            </a>
-                          </div>
-                          
-                          <div className="space-y-3 pl-2">
-                            <div className="bg-muted/40 rounded-2xl rounded-tr-sm p-4 text-sm text-foreground/90 border border-border/30">
-                              <span className="block text-xs font-semibold text-muted-foreground mb-1">التعليق:</span>
-                              {reply.commentText}
-                            </div>
-                            <div className="bg-primary/5 rounded-2xl rounded-tl-sm p-4 text-sm text-foreground border border-primary/10 mr-8 relative">
-                              <div className="absolute right-0 top-1/2 -mt-2 -mr-2 w-4 h-4 bg-background border-l border-b border-primary/10 rotate-45 transform"></div>
-                              <span className="block text-xs font-semibold text-primary mb-1 flex items-center gap-1.5">
-                                <Sparkles className="w-3 h-3" /> رد البوت الذكي:
-                              </span>
-                              {reply.replyText}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-                      <MessageCircle className="w-16 h-16 text-muted-foreground/30 mb-4" />
-                      <h4 className="text-lg font-bold text-foreground mb-1">لا توجد ردود بعد</h4>
-                      <p className="text-sm">سيظهر هنا سجل الردود التلقائية التي يقوم بها البوت.</p>
-                    </div>
-                  )}
+              <Card className="bg-background border-l-4 border-l-secondary shadow-md">
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="p-4 bg-secondary/10 rounded-2xl">
+                    <Mail className="w-8 h-8 text-secondary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">ردود الرسائل</p>
+                    <h4 className="text-4xl font-extrabold text-foreground">
+                      {isLoadingStatus ? "-" : status?.totalDmReplies?.toLocaleString('ar-EG') || "0"}
+                    </h4>
+                  </div>
                 </CardContent>
               </Card>
+            </motion.div>
+
+            {/* Tabs */}
+            <motion.div variants={itemVariants}>
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="w-full mb-4 h-12">
+                  <TabsTrigger value="comments" className="flex-1 gap-2 text-sm font-semibold">
+                    <MessageCircle className="w-4 h-4" /> ردود التعليقات
+                    <Badge variant="secondary" className="mr-1">{repliesData?.replies?.length || 0}</Badge>
+                  </TabsTrigger>
+                  <TabsTrigger value="dms" className="flex-1 gap-2 text-sm font-semibold">
+                    <Mail className="w-4 h-4" /> ردود الرسائل
+                    <Badge variant="secondary" className="mr-1">{dmRepliesData?.replies?.length || 0}</Badge>
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* Comments Tab */}
+                <TabsContent value="comments">
+                  <Card className="shadow-lg border-border/50 bg-card overflow-hidden">
+                    <CardContent className="p-0">
+                      {isLoadingReplies ? (
+                        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+                          <Loader2 className="w-10 h-10 animate-spin text-primary/50 mb-4" />
+                          <p>جاري تحميل الردود...</p>
+                        </div>
+                      ) : repliesData?.replies && repliesData.replies.length > 0 ? (
+                        <div className="divide-y divide-border/50">
+                          {repliesData.replies.map((reply) => (
+                            <div key={reply.id} className="p-6 hover:bg-muted/20 transition-colors">
+                              <div className="flex items-start justify-between mb-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-gray-200 to-gray-300 dark:from-gray-800 dark:to-gray-700 flex items-center justify-center font-bold text-gray-500 dark:text-gray-400">
+                                    {reply.username ? reply.username.charAt(0).toUpperCase() : '@'}
+                                  </div>
+                                  <div>
+                                    <p className="font-bold text-sm">{reply.username || 'مستخدم مجهول'}</p>
+                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                      {formatDistanceToNow(parseISO(reply.repliedAt), { addSuffix: true, locale: ar })}
+                                    </p>
+                                  </div>
+                                </div>
+                                <a 
+                                  href={`https://instagram.com/p/${reply.postId}`} 
+                                  target="_blank" 
+                                  rel="noreferrer"
+                                  className="text-xs flex items-center gap-1 text-primary hover:underline bg-primary/5 px-2.5 py-1.5 rounded-md transition-colors"
+                                >
+                                  عرض المنشور <Instagram className="w-3 h-3" />
+                                </a>
+                              </div>
+                              <div className="space-y-3 pl-2">
+                                <div className="bg-muted/40 rounded-2xl rounded-tr-sm p-4 text-sm text-foreground/90 border border-border/30">
+                                  <span className="block text-xs font-semibold text-muted-foreground mb-1">التعليق:</span>
+                                  {reply.commentText}
+                                </div>
+                                <div className="bg-primary/5 rounded-2xl rounded-tl-sm p-4 text-sm text-foreground border border-primary/10 mr-8">
+                                  <span className="block text-xs font-semibold text-primary mb-1 flex items-center gap-1.5">
+                                    <Sparkles className="w-3 h-3" /> رد البوت:
+                                  </span>
+                                  {reply.replyText}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+                          <MessageCircle className="w-16 h-16 text-muted-foreground/30 mb-4" />
+                          <h4 className="text-lg font-bold text-foreground mb-1">لا توجد ردود بعد</h4>
+                          <p className="text-sm">سيظهر هنا سجل الردود على التعليقات.</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                {/* DMs Tab */}
+                <TabsContent value="dms">
+                  <Card className="shadow-lg border-border/50 bg-card overflow-hidden">
+                    <CardContent className="p-0">
+                      {isLoadingDmReplies ? (
+                        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+                          <Loader2 className="w-10 h-10 animate-spin text-secondary/50 mb-4" />
+                          <p>جاري تحميل الرسائل...</p>
+                        </div>
+                      ) : dmRepliesData?.replies && dmRepliesData.replies.length > 0 ? (
+                        <div className="divide-y divide-border/50">
+                          {dmRepliesData.replies.map((reply) => (
+                            <div key={reply.id} className="p-6 hover:bg-muted/20 transition-colors">
+                              <div className="flex items-center gap-3 mb-4">
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-secondary/30 to-secondary/10 flex items-center justify-center font-bold text-secondary">
+                                  {reply.senderUsername ? reply.senderUsername.charAt(0).toUpperCase() : '@'}
+                                </div>
+                                <div>
+                                  <p className="font-bold text-sm">{reply.senderUsername || 'مستخدم مجهول'}</p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    {formatDistanceToNow(parseISO(reply.repliedAt), { addSuffix: true, locale: ar })}
+                                  </p>
+                                </div>
+                                <Badge variant="outline" className="mr-auto text-xs">رسالة مباشرة</Badge>
+                              </div>
+                              <div className="space-y-3 pl-2">
+                                <div className="bg-muted/40 rounded-2xl rounded-tr-sm p-4 text-sm text-foreground/90 border border-border/30">
+                                  <span className="block text-xs font-semibold text-muted-foreground mb-1">الرسالة:</span>
+                                  {reply.messageText}
+                                </div>
+                                <div className="bg-secondary/5 rounded-2xl rounded-tl-sm p-4 text-sm text-foreground border border-secondary/10 mr-8">
+                                  <span className="block text-xs font-semibold text-secondary mb-1 flex items-center gap-1.5">
+                                    <Sparkles className="w-3 h-3" /> رد البوت:
+                                  </span>
+                                  {reply.replyText}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+                          <Mail className="w-16 h-16 text-muted-foreground/30 mb-4" />
+                          <h4 className="text-lg font-bold text-foreground mb-1">لا توجد رسائل بعد</h4>
+                          <p className="text-sm">سيظهر هنا سجل الردود على الرسائل المباشرة.</p>
+                          <p className="text-xs mt-2 text-muted-foreground/70 max-w-xs text-center">
+                            يتطلب صلاحية instagram_manage_messages في التوكن
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
             </motion.div>
           </div>
         </motion.div>

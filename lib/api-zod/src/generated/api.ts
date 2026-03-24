@@ -22,6 +22,7 @@ export const HealthCheckResponse = zod.object({
 export const GetBotStatusResponse = zod.object({
   running: zod.boolean(),
   totalReplies: zod.number(),
+  totalDmReplies: zod.number(),
   instagramAccountId: zod.string().nullable(),
   lastChecked: zod.string().nullable(),
   errorMessage: zod.string().nullable(),
@@ -52,12 +53,38 @@ export const GetBotRepliesResponse = zod.object({
 });
 
 /**
+ * Returns a list of recent DM replies sent by the bot
+ * @summary Get recent DM replies
+ */
+export const getBotDmRepliesQueryLimitDefault = 20;
+
+export const GetBotDmRepliesQueryParams = zod.object({
+  limit: zod.coerce.number().default(getBotDmRepliesQueryLimitDefault),
+});
+
+export const GetBotDmRepliesResponse = zod.object({
+  replies: zod.array(
+    zod.object({
+      id: zod.number(),
+      conversationId: zod.string(),
+      messageId: zod.string(),
+      messageText: zod.string(),
+      replyText: zod.string(),
+      senderUsername: zod.string().nullable(),
+      senderId: zod.string().nullable(),
+      repliedAt: zod.string(),
+    }),
+  ),
+});
+
+/**
  * Start the Instagram bot worker
  * @summary Start the bot
  */
 export const StartBotResponse = zod.object({
   running: zod.boolean(),
   totalReplies: zod.number(),
+  totalDmReplies: zod.number(),
   instagramAccountId: zod.string().nullable(),
   lastChecked: zod.string().nullable(),
   errorMessage: zod.string().nullable(),
@@ -70,6 +97,7 @@ export const StartBotResponse = zod.object({
 export const StopBotResponse = zod.object({
   running: zod.boolean(),
   totalReplies: zod.number(),
+  totalDmReplies: zod.number(),
   instagramAccountId: zod.string().nullable(),
   lastChecked: zod.string().nullable(),
   errorMessage: zod.string().nullable(),

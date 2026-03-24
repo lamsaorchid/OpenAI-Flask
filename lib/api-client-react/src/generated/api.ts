@@ -18,6 +18,8 @@ import type {
 
 import type {
   BotStatus,
+  GetBotDmReplies200,
+  GetBotDmRepliesParams,
   GetBotReplies200,
   GetBotRepliesParams,
   HealthStatus,
@@ -271,6 +273,101 @@ export function useGetBotReplies<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetBotRepliesQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns a list of recent DM replies sent by the bot
+ * @summary Get recent DM replies
+ */
+export const getGetBotDmRepliesUrl = (params?: GetBotDmRepliesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/bot/dm-replies?${stringifiedParams}`
+    : `/api/bot/dm-replies`;
+};
+
+export const getBotDmReplies = async (
+  params?: GetBotDmRepliesParams,
+  options?: RequestInit,
+): Promise<GetBotDmReplies200> => {
+  return customFetch<GetBotDmReplies200>(getGetBotDmRepliesUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetBotDmRepliesQueryKey = (params?: GetBotDmRepliesParams) => {
+  return [`/api/bot/dm-replies`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetBotDmRepliesQueryOptions = <
+  TData = Awaited<ReturnType<typeof getBotDmReplies>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetBotDmRepliesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getBotDmReplies>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetBotDmRepliesQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getBotDmReplies>>> = ({
+    signal,
+  }) => getBotDmReplies(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getBotDmReplies>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetBotDmRepliesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getBotDmReplies>>
+>;
+export type GetBotDmRepliesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get recent DM replies
+ */
+
+export function useGetBotDmReplies<
+  TData = Awaited<ReturnType<typeof getBotDmReplies>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetBotDmRepliesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getBotDmReplies>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetBotDmRepliesQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

@@ -9,6 +9,7 @@
 export interface BotStatus {
   running: boolean;
   totalReplies: number;
+  totalDmReplies: number;
   instagramAccountId: string | null;
   lastChecked: string | null;
   errorMessage: string | null;

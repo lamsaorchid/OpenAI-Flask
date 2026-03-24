@@ -9,9 +9,21 @@ export interface HealthStatus {
   status: string;
 }
 
+export interface BotDmReply {
+  id: number;
+  conversationId: string;
+  messageId: string;
+  messageText: string;
+  replyText: string;
+  senderUsername: string | null;
+  senderId: string | null;
+  repliedAt: string;
+}
+
 export interface BotStatus {
   running: boolean;
   totalReplies: number;
+  totalDmReplies: number;
   instagramAccountId: string | null;
   lastChecked: string | null;
   errorMessage: string | null;
@@ -33,4 +45,12 @@ export type GetBotRepliesParams = {
 
 export type GetBotReplies200 = {
   replies: BotReply[];
+};
+
+export type GetBotDmRepliesParams = {
+  limit?: number;
+};
+
+export type GetBotDmReplies200 = {
+  replies: BotDmReply[];
 };

@@ -74,7 +74,12 @@ async function pollAndReply(): Promise<void> {
     const postsData = (await postsRes.json()) as { data?: { id: string }[]; error?: { message: string } };
 
     if (postsData.error) {
-      botState.errorMessage = postsData.error.message;
+      const msg = postsData.error.message;
+      if (msg.includes("nonexisting field") || msg.includes("OAuthException") || msg.includes("permission")) {
+        botState.errorMessage = `خطأ في الصلاحيات: التوكن لا يملك صلاحية instagram_basic أو instagram_manage_comments. يرجى توليد توكن جديد من Facebook Developers يحتوي على هذه الصلاحيات. (${msg})`;
+      } else {
+        botState.errorMessage = msg;
+      }
       return;
     }
 

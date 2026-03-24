@@ -6,7 +6,9 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_KEY });
 
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 const PAGE_ID = process.env.PAGE_ID;
-const INSTAGRAM_ACCOUNT_ID_ENV = process.env.INSTAGRAM_ACCOUNT_ID;
+const INSTAGRAM_ACCOUNT_ID_ENV = process.env.INSTAGRAM_ACCOUNT_ID === "26365467606417316"
+  ? "17841474711606081"
+  : (process.env.INSTAGRAM_ACCOUNT_ID ?? "17841474711606081");
 const POLL_INTERVAL_MS = 60_000;
 
 interface BotState {

@@ -1,6 +1,8 @@
 import { db, botRepliesTable } from "@workspace/db";
-import { openai } from "@workspace/integrations-openai-ai-server";
+import OpenAI from "openai";
 import { logger } from "../lib/logger";
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_KEY });
 
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 const PAGE_ID = process.env.PAGE_ID;

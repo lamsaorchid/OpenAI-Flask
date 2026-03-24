@@ -1,0 +1,15 @@
+packages:
+  "framer-motion": "For page transitions and micro-interactions"
+  "date-fns": "For formatting timestamps and relative dates in Arabic"
+  "clsx": "For merging tailwind classes"
+  "tailwind-merge": "For merging tailwind classes safely"
+  "@radix-ui/react-slot": "For reusable UI components"
+
+images:
+  - path: "artifacts/orchid-dashboard/public/images/hero-bg.png"
+    description: "Abstract soft gradient mesh background in deep purple and soft pink, clean modern, minimal, elegant"
+    aspect_ratio: "16:9"
+
+notes:
+  - "Assuming @workspace/api-client-react is available for API hooks."
+  - "RTL layout is handled via dir='rtl' wrapper in App.tsx."

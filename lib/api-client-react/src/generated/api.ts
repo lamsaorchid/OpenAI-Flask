@@ -5,15 +5,23 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
+  MutationFunction,
   QueryFunction,
   QueryKey,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
 
-import type { HealthStatus } from "./api.schemas";
+import type {
+  BotStatus,
+  GetBotReplies200,
+  GetBotRepliesParams,
+  HealthStatus,
+} from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
 import type { ErrorType } from "../custom-fetch";
@@ -99,3 +107,334 @@ export function useHealthCheck<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * Returns current bot status and statistics
+ * @summary Get bot status
+ */
+export const getGetBotStatusUrl = () => {
+  return `/api/bot/status`;
+};
+
+export const getBotStatus = async (
+  options?: RequestInit,
+): Promise<BotStatus> => {
+  return customFetch<BotStatus>(getGetBotStatusUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetBotStatusQueryKey = () => {
+  return [`/api/bot/status`] as const;
+};
+
+export const getGetBotStatusQueryOptions = <
+  TData = Awaited<ReturnType<typeof getBotStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getBotStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetBotStatusQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getBotStatus>>> = ({
+    signal,
+  }) => getBotStatus({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getBotStatus>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetBotStatusQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getBotStatus>>
+>;
+export type GetBotStatusQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get bot status
+ */
+
+export function useGetBotStatus<
+  TData = Awaited<ReturnType<typeof getBotStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getBotStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetBotStatusQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns a list of recent replies sent by the bot
+ * @summary Get recent replies
+ */
+export const getGetBotRepliesUrl = (params?: GetBotRepliesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/bot/replies?${stringifiedParams}`
+    : `/api/bot/replies`;
+};
+
+export const getBotReplies = async (
+  params?: GetBotRepliesParams,
+  options?: RequestInit,
+): Promise<GetBotReplies200> => {
+  return customFetch<GetBotReplies200>(getGetBotRepliesUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetBotRepliesQueryKey = (params?: GetBotRepliesParams) => {
+  return [`/api/bot/replies`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetBotRepliesQueryOptions = <
+  TData = Awaited<ReturnType<typeof getBotReplies>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetBotRepliesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getBotReplies>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetBotRepliesQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getBotReplies>>> = ({
+    signal,
+  }) => getBotReplies(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getBotReplies>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetBotRepliesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getBotReplies>>
+>;
+export type GetBotRepliesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get recent replies
+ */
+
+export function useGetBotReplies<
+  TData = Awaited<ReturnType<typeof getBotReplies>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetBotRepliesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getBotReplies>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetBotRepliesQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Start the Instagram bot worker
+ * @summary Start the bot
+ */
+export const getStartBotUrl = () => {
+  return `/api/bot/start`;
+};
+
+export const startBot = async (options?: RequestInit): Promise<BotStatus> => {
+  return customFetch<BotStatus>(getStartBotUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getStartBotMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startBot>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof startBot>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["startBot"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof startBot>>,
+    void
+  > = () => {
+    return startBot(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type StartBotMutationResult = NonNullable<
+  Awaited<ReturnType<typeof startBot>>
+>;
+
+export type StartBotMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Start the bot
+ */
+export const useStartBot = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startBot>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof startBot>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getStartBotMutationOptions(options));
+};
+
+/**
+ * Stop the Instagram bot worker
+ * @summary Stop the bot
+ */
+export const getStopBotUrl = () => {
+  return `/api/bot/stop`;
+};
+
+export const stopBot = async (options?: RequestInit): Promise<BotStatus> => {
+  return customFetch<BotStatus>(getStopBotUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getStopBotMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof stopBot>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof stopBot>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["stopBot"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof stopBot>>,
+    void
+  > = () => {
+    return stopBot(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type StopBotMutationResult = NonNullable<
+  Awaited<ReturnType<typeof stopBot>>
+>;
+
+export type StopBotMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Stop the bot
+ */
+export const useStopBot = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof stopBot>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof stopBot>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getStopBotMutationOptions(options));
+};

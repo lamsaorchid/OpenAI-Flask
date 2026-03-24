@@ -8,3 +8,29 @@
 export interface HealthStatus {
   status: string;
 }
+
+export interface BotStatus {
+  running: boolean;
+  totalReplies: number;
+  instagramAccountId: string | null;
+  lastChecked: string | null;
+  errorMessage: string | null;
+}
+
+export interface BotReply {
+  id: number;
+  commentId: string;
+  commentText: string;
+  replyText: string;
+  username: string | null;
+  postId: string;
+  repliedAt: string;
+}
+
+export type GetBotRepliesParams = {
+  limit?: number;
+};
+
+export type GetBotReplies200 = {
+  replies: BotReply[];
+};

@@ -6,4 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./botReply";
+export * from "./botStatus";
+export * from "./getBotReplies200";
+export * from "./getBotRepliesParams";
 export * from "./healthStatus";

@@ -14,3 +14,63 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * Returns current bot status and statistics
+ * @summary Get bot status
+ */
+export const GetBotStatusResponse = zod.object({
+  running: zod.boolean(),
+  totalReplies: zod.number(),
+  instagramAccountId: zod.string().nullable(),
+  lastChecked: zod.string().nullable(),
+  errorMessage: zod.string().nullable(),
+});
+
+/**
+ * Returns a list of recent replies sent by the bot
+ * @summary Get recent replies
+ */
+export const getBotRepliesQueryLimitDefault = 20;
+
+export const GetBotRepliesQueryParams = zod.object({
+  limit: zod.coerce.number().default(getBotRepliesQueryLimitDefault),
+});
+
+export const GetBotRepliesResponse = zod.object({
+  replies: zod.array(
+    zod.object({
+      id: zod.number(),
+      commentId: zod.string(),
+      commentText: zod.string(),
+      replyText: zod.string(),
+      username: zod.string().nullable(),
+      postId: zod.string(),
+      repliedAt: zod.string(),
+    }),
+  ),
+});
+
+/**
+ * Start the Instagram bot worker
+ * @summary Start the bot
+ */
+export const StartBotResponse = zod.object({
+  running: zod.boolean(),
+  totalReplies: zod.number(),
+  instagramAccountId: zod.string().nullable(),
+  lastChecked: zod.string().nullable(),
+  errorMessage: zod.string().nullable(),
+});
+
+/**
+ * Stop the Instagram bot worker
+ * @summary Stop the bot
+ */
+export const StopBotResponse = zod.object({
+  running: zod.boolean(),
+  totalReplies: zod.number(),
+  instagramAccountId: zod.string().nullable(),
+  lastChecked: zod.string().nullable(),
+  errorMessage: zod.string().nullable(),
+});

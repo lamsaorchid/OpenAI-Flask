@@ -146,78 +146,84 @@ async function pollComments(): Promise<void> {
 async function pollDms(): Promise<void> {
   if (!botState.instagramAccountId) return;
 
-  const convsUrl = `https://graph.facebook.com/v21.0/${botState.instagramAccountId}/conversations?platform=instagram&fields=id,participants&access_token=${PAGE_ACCESS_TOKEN}`;
-  const convsRes = await fetch(convsUrl);
-  const convsData = (await convsRes.json()) as {
-    data?: { id: string; participants?: { data: { id: string; username?: string }[] } }[];
-    error?: { message: string };
-  };
-
-  if (convsData.error) {
-    const msg = convsData.error.message;
-    if (msg.includes("permission") || msg.includes("nonexisting") || msg.includes("OAuthException")) {
-      logger.warn({ msg }, "DM polling skipped — missing instagram_manage_messages permission");
-    } else {
-      logger.error({ msg }, "Error fetching DM conversations");
-    }
-    return;
-  }
-
-  const conversations = convsData.data ?? [];
-  logger.info({ count: conversations.length }, "Fetched DM conversations");
-
-  for (const conv of conversations) {
-    const msgsUrl = `https://graph.facebook.com/v21.0/${conv.id}/messages?fields=id,message,from,created_time&access_token=${PAGE_ACCESS_TOKEN}`;
-    const msgsRes = await fetch(msgsUrl);
-    const msgsData = (await msgsRes.json()) as {
-      data?: { id: string; message: string; from?: { id: string; username?: string }; created_time: string }[];
+  try {
+    const convsUrl = `https://graph.facebook.com/v21.0/${PAGE_ID}/conversations?platform=instagram&fields=id,senders,former_participants&access_token=${PAGE_ACCESS_TOKEN}`;
+    const convsRes = await fetch(convsUrl);
+    const convsData = (await convsRes.json()) as {
+      data?: { id: string; senders?: { data: { id: string; username?: string }[] } }[];
       error?: { message: string };
     };
 
-    if (msgsData.error) {
-      logger.error({ error: msgsData.error.message }, "Error fetching messages");
-      continue;
+    if (convsData.error) {
+      const msg = convsData.error.message;
+      if (msg.includes("permission") || msg.includes("nonexisting")) {
+        logger.info("DM polling unavailable — requires instagram_manage_messages permission");
+      } else {
+        logger.debug({ msg }, "DM conversation fetch error");
+      }
+      return;
     }
 
-    for (const msg of msgsData.data ?? []) {
-      if (repliedMessageIds.has(msg.id)) continue;
-      if (msg.from?.id === botState.instagramAccountId) continue;
-      if (!msg.message?.trim()) continue;
+    const conversations = convsData.data ?? [];
+    if (conversations.length === 0) return;
+    
+    logger.info({ count: conversations.length }, "Fetched DM conversations");
 
-      logger.info({ msgId: msg.id, text: msg.message.slice(0, 50) }, "Generating DM reply");
-      const reply = await getReply(msg.message, "dm");
+    for (const conv of conversations) {
+      const msgsUrl = `https://graph.facebook.com/v21.0/${conv.id}/messages?fields=id,message,from,created_time&access_token=${PAGE_ACCESS_TOKEN}`;
+      const msgsRes = await fetch(msgsUrl);
+      const msgsData = (await msgsRes.json()) as {
+        data?: { id: string; message: string; from?: { id: string; username?: string }; created_time: string }[];
+        error?: { message: string };
+      };
 
-      const senderId = msg.from?.id;
-      if (!senderId) continue;
+      if (msgsData.error) {
+        logger.debug({ error: msgsData.error.message }, "Error fetching messages");
+        continue;
+      }
 
-      const sendUrl = `https://graph.facebook.com/v21.0/${botState.instagramAccountId}/messages`;
-      const sendRes = await fetch(sendUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          recipient: { id: senderId },
-          message: { text: reply },
-          access_token: PAGE_ACCESS_TOKEN,
-        }),
-      });
+      for (const msg of msgsData.data ?? []) {
+        if (repliedMessageIds.has(msg.id)) continue;
+        if (msg.from?.id === botState.instagramAccountId) continue;
+        if (!msg.message?.trim()) continue;
 
-      if (sendRes.ok) {
-        repliedMessageIds.add(msg.id);
-        await db.insert(botDmRepliesTable).values({
-          conversationId: conv.id,
-          messageId: msg.id,
-          messageText: msg.message,
-          replyText: reply,
-          senderUsername: msg.from?.username ?? null,
-          senderId: senderId,
+        logger.info({ msgId: msg.id, text: msg.message.slice(0, 50) }, "Generating DM reply");
+        const reply = await getReply(msg.message, "dm");
+
+        const senderId = msg.from?.id;
+        if (!senderId) continue;
+
+        const sendUrl = `https://graph.facebook.com/v21.0/${botState.instagramAccountId}/messages`;
+        const sendRes = await fetch(sendUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipient: { id: senderId },
+            message: { text: reply },
+            access_token: PAGE_ACCESS_TOKEN,
+          }),
         });
-        botState.totalDmReplies += 1;
-        logger.info({ msgId: msg.id }, "DM reply sent");
-      } else {
-        const errData = (await sendRes.json()) as { error?: { message: string } };
-        logger.error({ error: errData.error?.message }, "Failed to send DM reply");
+
+        if (sendRes.ok) {
+          repliedMessageIds.add(msg.id);
+          await db.insert(botDmRepliesTable).values({
+            conversationId: conv.id,
+            messageId: msg.id,
+            messageText: msg.message,
+            replyText: reply,
+            senderUsername: msg.from?.username ?? null,
+            senderId: senderId,
+          });
+          botState.totalDmReplies += 1;
+          logger.info({ msgId: msg.id }, "DM reply sent");
+        } else {
+          const errData = (await sendRes.json()) as { error?: { message: string } };
+          logger.debug({ error: errData.error?.message }, "Failed to send DM reply");
+        }
       }
     }
+  } catch (err) {
+    logger.debug({ err }, "DM polling error — feature may not be available with current token permissions");
   }
 }
 

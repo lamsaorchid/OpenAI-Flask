@@ -10,13 +10,7 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# ضع معلوماتك هنا
-PAGE_ACCESS_TOKEN = "EAAGm0PX4ZCpsBO..."  # ← غيّره
-PAGE_ID = "786987674491313"
-OPENAI_KEY = "sk-proj-..."  # ← غيّره
-
-openai.api_key = OPENAI_KEY
-INSTAGRAM_ACCOUNT_ID = None
+س
 replied = set()
 stats = {'total': 0, 'status': 'جاري التشغيل...'}
 

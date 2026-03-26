@@ -31,6 +31,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PostPublisher from "@/components/PostPublisher";
+import TokenChecker from "@/components/TokenChecker";
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
@@ -223,7 +224,7 @@ export default function Dashboard() {
                       {status?.instagramAccountId || 'غير متصل'}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center py-2">
+                  <div className="flex justify-between items-center py-2 border-b border-border/50">
                     <span className="text-muted-foreground text-sm flex items-center gap-1.5">
                       <Clock className="w-4 h-4" /> آخر تحقق
                     </span>
@@ -234,6 +235,9 @@ export default function Dashboard() {
                         'لم يتم التحقق بعد'
                       )}
                     </span>
+                  </div>
+                  <div className="pt-2">
+                    <TokenChecker />
                   </div>
                 </CardContent>
               </Card>

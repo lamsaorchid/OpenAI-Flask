@@ -6,9 +6,10 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_KEY });
 
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 const PAGE_ID = process.env.PAGE_ID;
-const INSTAGRAM_ACCOUNT_ID_ENV = process.env.INSTAGRAM_ACCOUNT_ID === "26365467606417316"
-  ? "17841474711606081"
-  : (process.env.INSTAGRAM_ACCOUNT_ID ?? "17841474711606081");
+const INSTAGRAM_ACCOUNT_ID_ENV =
+  process.env.INSTAGRAM_ACCOUNT_ID === "26365467606417316"
+    ? "17841474711606081"
+    : (process.env.INSTAGRAM_ACCOUNT_ID ?? "17841474711606081");
 const POLL_INTERVAL_MS = 60_000;
 
 interface BotState {
@@ -35,19 +36,28 @@ let repliedMessageIds: Set<string> = new Set();
 
 async function getInstagramAccountId(): Promise<string | null> {
   if (!PAGE_ACCESS_TOKEN || !PAGE_ID) {
-    throw new Error("PAGE_ACCESS_TOKEN and PAGE_ID environment variables are required");
+    throw new Error(
+      "PAGE_ACCESS_TOKEN and PAGE_ID environment variables are required",
+    );
   }
   const url = `https://graph.facebook.com/v21.0/${PAGE_ID}?fields=instagram_business_account&access_token=${PAGE_ACCESS_TOKEN}`;
   const res = await fetch(url);
-  const data = (await res.json()) as { instagram_business_account?: { id: string }; error?: { message: string } };
+  const data = (await res.json()) as {
+    instagram_business_account?: { id: string };
+    error?: { message: string };
+  };
   if (data.error) throw new Error(data.error.message);
   return data.instagram_business_account?.id ?? null;
 }
 
-async function getReply(text: string, context: "comment" | "dm"): Promise<string> {
-  const systemPrompt = context === "dm"
-    ? "أنت مساعد ودود لمتجر لمسة أوركيد للزهور والهدايا. رد على رسائل العملاء المباشرة بإيجاز ومودة مع إيموجي مناسب. أجب على أسئلة المنتجات والأسعار وأوقات العمل بشكل مفيد. للاستفسارات التفصيلية اذكر واتساب: 783200063"
-    : "أنت مساعد ودود لمتجر لمسة أوركيد للزهور والهدايا. رد على تعليقات العملاء بإيجاز ومودة مع إيموجي مناسب. للاستفسارات التفصيلية اذكر واتساب: 783200063";
+async function getReply(
+  text: string,
+  context: "comment" | "dm",
+): Promise<string> {
+  const systemPrompt =
+    context === "dm"
+      ? "أنت مساعد ودود لمتجر لمسة أوركيد للزهور والهدايا. رد على رسائل العملاء المباشرة بإيجاز ومودة مع إيموجي مناسب. أجب على أسئلة المنتجات والأسعار وأوقات العمل بشكل مفيد. للاستفسارات التفصيلية اذكر واتساب: 783200063"
+      : "أنت مساعد ودود لمتجر لمسة أوركيد للزهور والهدايا. رد على تعليقات العملاء بإيجاز ومودة مع إيموجي مناسب. للاستفسارات التفصيلية اذكر واتساب: 783200063";
 
   try {
     const completion = await openai.chat.completions.create({
@@ -58,9 +68,10 @@ async function getReply(text: string, context: "comment" | "dm"): Promise<string
         { role: "user", content: text },
       ],
     });
-    const fallback = context === "dm"
-      ? "شكراً لرسالتك 🌸 سنرد عليك قريباً. واتساب: 783200063"
-      : "شكراً لتعليقك 🌸 واتساب: 783200063";
+    const fallback =
+      context === "dm"
+        ? "شكراً لرسالتك 🌸 سنرد عليك قريباً. واتساب: 783200063"
+        : "شكراً لتعليقك 🌸 واتساب: 783200063";
     return completion.choices[0]?.message?.content ?? fallback;
   } catch {
     return context === "dm"
@@ -70,11 +81,15 @@ async function getReply(text: string, context: "comment" | "dm"): Promise<string
 }
 
 async function loadRepliedIds(): Promise<void> {
-  const commentRows = await db.select({ commentId: botRepliesTable.commentId }).from(botRepliesTable);
+  const commentRows = await db
+    .select({ commentId: botRepliesTable.commentId })
+    .from(botRepliesTable);
   repliedCommentIds = new Set(commentRows.map((r) => r.commentId));
   botState.totalReplies = commentRows.length;
 
-  const dmRows = await db.select({ messageId: botDmRepliesTable.messageId }).from(botDmRepliesTable);
+  const dmRows = await db
+    .select({ messageId: botDmRepliesTable.messageId })
+    .from(botDmRepliesTable);
   repliedMessageIds = new Set(dmRows.map((r) => r.messageId));
   botState.totalDmReplies = dmRows.length;
 }
@@ -84,11 +99,18 @@ async function pollComments(): Promise<void> {
 
   const postsUrl = `https://graph.facebook.com/v21.0/${botState.instagramAccountId}/media?fields=id&limit=5&access_token=${PAGE_ACCESS_TOKEN}`;
   const postsRes = await fetch(postsUrl);
-  const postsData = (await postsRes.json()) as { data?: { id: string }[]; error?: { message: string } };
+  const postsData = (await postsRes.json()) as {
+    data?: { id: string }[];
+    error?: { message: string };
+  };
 
   if (postsData.error) {
     const msg = postsData.error.message;
-    if (msg.includes("nonexisting field") || msg.includes("OAuthException") || msg.includes("permission")) {
+    if (
+      msg.includes("nonexisting field") ||
+      msg.includes("OAuthException") ||
+      msg.includes("permission")
+    ) {
       botState.errorMessage = `خطأ في الصلاحيات (التعليقات): يجب أن يحتوي التوكن على صلاحية instagram_basic. (${msg})`;
     } else {
       botState.errorMessage = msg;
@@ -108,21 +130,33 @@ async function pollComments(): Promise<void> {
     };
 
     if (commentsData.error) {
-      logger.error({ error: commentsData.error.message }, "Error fetching comments");
+      logger.error(
+        { error: commentsData.error.message },
+        "Error fetching comments",
+      );
       continue;
     }
 
     for (const comment of commentsData.data ?? []) {
       if (repliedCommentIds.has(comment.id)) continue;
 
-      logger.info({ commentId: comment.id, text: comment.text.slice(0, 50) }, "Generating comment reply");
+      logger.info(
+        { commentId: comment.id, text: comment.text.slice(0, 50) },
+        "Generating comment reply",
+      );
       const reply = await getReply(comment.text, "comment");
 
-      const replyRes = await fetch(`https://graph.facebook.com/v21.0/${comment.id}/replies`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: reply, access_token: PAGE_ACCESS_TOKEN }),
-      });
+      const replyRes = await fetch(
+        `https://graph.facebook.com/v21.0/${comment.id}/replies`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: reply,
+            access_token: PAGE_ACCESS_TOKEN,
+          }),
+        },
+      );
 
       if (replyRes.ok) {
         repliedCommentIds.add(comment.id);
@@ -136,8 +170,13 @@ async function pollComments(): Promise<void> {
         botState.totalReplies += 1;
         logger.info({ commentId: comment.id }, "Comment reply posted");
       } else {
-        const errData = (await replyRes.json()) as { error?: { message: string } };
-        logger.error({ error: errData.error?.message }, "Failed to post comment reply");
+        const errData = (await replyRes.json()) as {
+          error?: { message: string };
+        };
+        logger.error(
+          { error: errData.error?.message },
+          "Failed to post comment reply",
+        );
       }
     }
   }
@@ -150,14 +189,19 @@ async function pollDms(): Promise<void> {
     const convsUrl = `https://graph.facebook.com/v21.0/${PAGE_ID}/conversations?platform=instagram&fields=id,senders,former_participants&access_token=${PAGE_ACCESS_TOKEN}`;
     const convsRes = await fetch(convsUrl);
     const convsData = (await convsRes.json()) as {
-      data?: { id: string; senders?: { data: { id: string; username?: string }[] } }[];
+      data?: {
+        id: string;
+        senders?: { data: { id: string; username?: string }[] };
+      }[];
       error?: { message: string };
     };
 
     if (convsData.error) {
       const msg = convsData.error.message;
       if (msg.includes("permission") || msg.includes("nonexisting")) {
-        logger.info("DM polling unavailable — requires instagram_manage_messages permission");
+        logger.info(
+          "DM polling unavailable — requires instagram_manage_messages permission",
+        );
       } else {
         logger.debug({ msg }, "DM conversation fetch error");
       }
@@ -166,19 +210,27 @@ async function pollDms(): Promise<void> {
 
     const conversations = convsData.data ?? [];
     if (conversations.length === 0) return;
-    
+
     logger.info({ count: conversations.length }, "Fetched DM conversations");
 
     for (const conv of conversations) {
       const msgsUrl = `https://graph.facebook.com/v21.0/${conv.id}/messages?fields=id,message,from,created_time&access_token=${PAGE_ACCESS_TOKEN}`;
       const msgsRes = await fetch(msgsUrl);
       const msgsData = (await msgsRes.json()) as {
-        data?: { id: string; message: string; from?: { id: string; username?: string }; created_time: string }[];
+        data?: {
+          id: string;
+          message: string;
+          from?: { id: string; username?: string };
+          created_time: string;
+        }[];
         error?: { message: string };
       };
 
       if (msgsData.error) {
-        logger.debug({ error: msgsData.error.message }, "Error fetching messages");
+        logger.debug(
+          { error: msgsData.error.message },
+          "Error fetching messages",
+        );
         continue;
       }
 
@@ -187,7 +239,10 @@ async function pollDms(): Promise<void> {
         if (msg.from?.id === botState.instagramAccountId) continue;
         if (!msg.message?.trim()) continue;
 
-        logger.info({ msgId: msg.id, text: msg.message.slice(0, 50) }, "Generating DM reply");
+        logger.info(
+          { msgId: msg.id, text: msg.message.slice(0, 50) },
+          "Generating DM reply",
+        );
         const reply = await getReply(msg.message, "dm");
 
         const senderId = msg.from?.id;
@@ -217,13 +272,21 @@ async function pollDms(): Promise<void> {
           botState.totalDmReplies += 1;
           logger.info({ msgId: msg.id }, "DM reply sent");
         } else {
-          const errData = (await sendRes.json()) as { error?: { message: string } };
-          logger.debug({ error: errData.error?.message }, "Failed to send DM reply");
+          const errData = (await sendRes.json()) as {
+            error?: { message: string };
+          };
+          logger.debug(
+            { error: errData.error?.message },
+            "Failed to send DM reply",
+          );
         }
       }
     }
   } catch (err) {
-    logger.debug({ err }, "DM polling error — feature may not be available with current token permissions");
+    logger.debug(
+      { err },
+      "DM polling error — feature may not be available with current token permissions",
+    );
   }
 }
 
@@ -258,10 +321,12 @@ export async function startBot(): Promise<void> {
   try {
     await loadRepliedIds();
 
-    const accountId = INSTAGRAM_ACCOUNT_ID_ENV || await getInstagramAccountId();
+    const accountId =
+      INSTAGRAM_ACCOUNT_ID_ENV || (await getInstagramAccountId());
 
     if (!accountId) {
-      botState.errorMessage = "لم يتم العثور على حساب Instagram. يرجى إضافة INSTAGRAM_ACCOUNT_ID في الإعدادات.";
+      botState.errorMessage =
+        "لم يتم العثور على حساب Instagram. يرجى إضافة INSTAGRAM_ACCOUNT_ID في الإعدادات.";
       botState.running = false;
       return;
     }

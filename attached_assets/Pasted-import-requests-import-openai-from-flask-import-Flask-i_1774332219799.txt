@@ -1,5 +1,4 @@
 import requests
-import openai
 from flask import Flask
 import threading
 import time

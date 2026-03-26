@@ -30,4 +30,4 @@ databases:
   - name: orchid-db
     databaseName: orchid
     user: orchid_user
-
+    plan: free

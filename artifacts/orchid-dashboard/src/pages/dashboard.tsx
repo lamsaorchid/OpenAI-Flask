@@ -14,7 +14,8 @@ import {
   XCircle,
   Loader2,
   Sparkles,
-  Mail
+  Mail,
+  PlusCircle
 } from "lucide-react";
 import { 
   useGetBotStatus, 
@@ -29,6 +30,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import PostPublisher from "@/components/PostPublisher";
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
@@ -283,6 +285,9 @@ export default function Dashboard() {
                     <Mail className="w-4 h-4" /> ردود الرسائل
                     <Badge variant="secondary" className="mr-1">{dmRepliesData?.replies?.length || 0}</Badge>
                   </TabsTrigger>
+                  <TabsTrigger value="publish" className="flex-1 gap-2 text-sm font-semibold">
+                    <PlusCircle className="w-4 h-4" /> نشر منشور
+                  </TabsTrigger>
                 </TabsList>
 
                 {/* Comments Tab */}
@@ -397,6 +402,11 @@ export default function Dashboard() {
                       )}
                     </CardContent>
                   </Card>
+                </TabsContent>
+
+                {/* Publish Tab */}
+                <TabsContent value="publish">
+                  <PostPublisher />
                 </TabsContent>
               </Tabs>
             </motion.div>
